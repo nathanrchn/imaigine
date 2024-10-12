@@ -3,12 +3,14 @@
 import { z } from "zod";
 import { generateObject } from "ai";
 import { google } from "@ai-sdk/google";
+import { decode } from "base64-arraybuffer";
 import { SuiClient } from "@mysten/sui/client";
 import { getFullnodeUrl } from "@mysten/sui/client";
+import { createClient } from "@supabase/supabase-js";
 import { IMAIGINE_ADDRESS, SUI_NETWORK } from "./consts";
 import { queue, subscribe } from "@fal-ai/serverless-client";
 import { KioskClient, KioskOwnerCap, Network } from "@mysten/kiosk";
-import { FalModelResult, FalResult, Model, ModelType } from "./utils";
+import { FalModelResult, FalResult, Model, ModelType, nanoid } from "./utils";
 
 const client = new SuiClient({ url: getFullnodeUrl(SUI_NETWORK) });
 
@@ -62,7 +64,7 @@ export const generateExampleImage = async (requestId: string, modelType: ModelTy
     },
   });
 
-  return imageResult.images[0].url;
+  return imageResult.images[0];
 }
 
 export const getModel = async (id: string): Promise<Model> => {
@@ -128,4 +130,34 @@ export const getKioskModels = async (kioskId: string): Promise<Model[]> => {
       trigger_word: content.fields.trigger_word,
     }
   });
+}
+
+const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
+
+export const uploadImage = async (imageData: string): Promise<string> => {
+  const [, mimeType, base64Data] = imageData.match(/^data:(.+);base64,(.+)$/) || [];
+
+  if (!mimeType || !base64Data) {
+    throw new Error('Invalid image data format');
+  }
+
+  const fileName = `public/${nanoid(10)}.${mimeType.split('/')[1]}`;
+  const fileData = decode(base64Data);
+
+  await supabase
+    .storage
+    .from("images")
+    .upload(fileName, fileData, {
+      contentType: mimeType,
+      upsert: true,
+    });
+
+  const { data: publicUrlData } = supabase
+    .storage
+    .from("images")
+    .getPublicUrl(fileName);
+
+  console.log(publicUrlData);
+
+  return publicUrlData.publicUrl!;
 }

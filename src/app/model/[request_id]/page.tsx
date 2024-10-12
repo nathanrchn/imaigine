@@ -13,7 +13,7 @@ import { Progress } from "@/components/ui/progress";
 import { Transaction } from "@mysten/sui/transactions";
 import { FalModelResult, ModelType } from "@/lib/utils";
 import { FalStream } from "@fal-ai/serverless-client/src/streaming";
-import { generateExampleImage, getTriggerWord } from "@/lib/actions";
+import { generateExampleImage, getTriggerWord, uploadImage } from "@/lib/actions";
 import { IMAIGINE_PACKAGE_ADDRESS, SUI_NETWORK } from "@/lib/consts";
 import { useSignAndExecuteTransaction, useSuiClient } from "@mysten/dapp-kit";
 import { InProgressQueueStatus, QueueStatus } from "@fal-ai/serverless-client/src/types";
@@ -22,7 +22,7 @@ export default function ModelPage({ params: { request_id } }: { params: { reques
   const client = useSuiClient();
   const [process, setProcess] = useState(0);
   const [finished, setFinished] = useState(false);
-  const [image_url, setImageUrl] = useState<string | null>(null);
+  const [imageData, setImageData] = useState<{ url: string, contentType: string } | null>(null);
   const [isGeneratingExampleImage, setIsGeneratingExampleImage] = useState(false);
 
   const searchParams = useSearchParams();
@@ -70,6 +70,10 @@ export default function ModelPage({ params: { request_id } }: { params: { reques
 
     const triggerWord = await getTriggerWord(result.config_file.url);
 
+    const image_url: string = await uploadImage(imageData?.url || "");
+
+    console.log(image_url, result.diffusers_lora_file.url, triggerWord);
+
     const tx = new Transaction();
 
     tx.moveCall({
@@ -77,7 +81,7 @@ export default function ModelPage({ params: { request_id } }: { params: { reques
       arguments: [
         tx.pure.string(result.diffusers_lora_file.url),
         tx.pure.string(triggerWord),
-        tx.pure.vector("vector<string>", image_url ? [[image_url]] : [[]])
+        tx.pure.string(image_url)
       ]
     })
 
@@ -116,12 +120,12 @@ export default function ModelPage({ params: { request_id } }: { params: { reques
         </div>
 
         <div className="mb-4 flex justify-center">
-          {image_url && <Image src={image_url} alt="Example Image" width={512} height={512} className="rounded-xl" />}
+          {imageData && <Image src={imageData.url} alt="Example Image" width={512} height={512} className="rounded-xl" />}
         </div>
 
         {finished ? (
           <div className="text-center">
-            {image_url ? (
+            {imageData ? (
               <Button onClick={mintModelNft} className="w-full md:w-auto">
                 Mint Model NFT
               </Button>
@@ -129,7 +133,7 @@ export default function ModelPage({ params: { request_id } }: { params: { reques
               <Button onClick={() => {
                 setIsGeneratingExampleImage(true);
                 generateExampleImage(request_id, modelType).then((imageResult) => {
-                  setImageUrl(imageResult);
+                  setImageData({ url: imageResult?.url, contentType: imageResult?.content_type });
                   setIsGeneratingExampleImage(false);
                 });
               }} className="w-full md:w-auto">
