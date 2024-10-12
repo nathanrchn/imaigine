@@ -157,7 +157,5 @@ export const uploadImage = async (imageData: string): Promise<string> => {
     .from("images")
     .getPublicUrl(fileName);
 
-  console.log(publicUrlData);
-
   return publicUrlData.publicUrl!;
 }

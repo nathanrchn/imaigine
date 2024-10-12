@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Link, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MIST_PER_SUI } from "@mysten/sui/utils";
-import { getModel, imagine } from "@/lib/actions";
+import { getModel, imagine, uploadImage } from "@/lib/actions";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ToastAction } from "@/components/ui/toast";
 import { Textarea } from "@/components/ui/textarea";
@@ -44,7 +44,7 @@ export default function GeneratePage({ params: { id } }: { params: { id: string 
   const [model, setModel] = useState<Model | null>(null);
   const [image, setImage] = useState<FalResult | null>(null);
   const [lastPrompt, setLastPrompt] = useState<string | null>(null);
-  
+
   useEffect(() => {
     getModel(id).then((result) => {
       setModel(result);
@@ -93,7 +93,8 @@ export default function GeneratePage({ params: { id } }: { params: { id: string 
     const tx = new Transaction();
 
     const [generation_coin] = tx.splitCoins(tx.gas, [BigInt(GENERATE_PRICE_IN_SUI) * MIST_PER_SUI])
-    const [use_model_coin] = tx.splitCoins(generation_coin, [BigInt(FEES_PERCENTAGE) * BigInt(GENERATE_PRICE_IN_SUI) * MIST_PER_SUI])
+    const feesAmount = BigInt(FEES_PERCENTAGE * 100) * BigInt(GENERATE_PRICE_IN_SUI) * MIST_PER_SUI / BigInt(100);
+    const [use_model_coin] = tx.splitCoins(generation_coin, [feesAmount]);
     tx.transferObjects([generation_coin], VAULT_ADDRESS)
     tx.transferObjects([use_model_coin], model!.owner)
 
@@ -118,13 +119,15 @@ export default function GeneratePage({ params: { id } }: { params: { id: string 
   }
 
   const mintNFT = async () => {
+    const image_url: string = await uploadImage(image!.images[0].url);
+
     const tx = new Transaction();
 
     tx.moveCall({
       target: `${IMAIGINE_PACKAGE_ADDRESS}::image::create`,
       arguments: [
         tx.pure.string(lastPrompt!),
-        tx.pure.string(image!.images[0].url),
+        tx.pure.string(image_url),
         tx.pure.address(id),
       ]
     })
@@ -184,7 +187,7 @@ export default function GeneratePage({ params: { id } }: { params: { id: string 
             image ? (
               <div className="relative">
                 <Image src={image.images[0].url} alt="Generated Image" width={image.images[0].width} height={image.images[0].height} className="rounded-xl" />
-                {!hasMinted && <Button type="button" className="absolute bottom-2 right-2" onClick={async () => await mintNFT()}>Mint NFT</Button>}
+                {!hasMinted && <Button type="button" className="absolute bottom-2 right-2" onClick={mintNFT}>Mint NFT</Button>}
               </div>
             ) :
             <div className="w-[512px] h-[512px]" />

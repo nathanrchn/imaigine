@@ -72,8 +72,6 @@ export default function ModelPage({ params: { request_id } }: { params: { reques
 
     const image_url: string = await uploadImage(imageData?.url || "");
 
-    console.log(image_url, result.diffusers_lora_file.url, triggerWord);
-
     const tx = new Transaction();
 
     tx.moveCall({
