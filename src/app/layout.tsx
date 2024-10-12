@@ -21,11 +21,11 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <Context>
-          <div className="min-h-[10vh] flex flex-col justify-center items-center">
+          <div className="min-h-[8vh] flex flex-col justify-center items-center">
             <Header />
           </div>
           <Separator />
-          <main className="flex min-h-[90vh]">
+          <main className="flex min-h-[92vh]">
             {children}
           </main>
           <Toaster />

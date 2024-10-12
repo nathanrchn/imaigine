@@ -20,11 +20,25 @@ export function colorFromAddress(address: string): string {
   return colors[parseInt(address.slice(0, 8), 16) % colors.length];
 }
 
+export type ModelType = "people" | "style" | "other";
+
 export type Model = {
   id: string;
   creator: string;
   weights_link: string;
   trigger_word: string;
-  image_urls: string[];
+  image_url: string;
   price?: number;
+}
+
+export type FalFile = {
+  content_type: string;
+  file_name: string;
+  file_size: number;
+  url: string;
+}
+
+export type FalModelResult = {
+  config_file: FalFile;
+  diffusers_lora_file: FalFile;
 }

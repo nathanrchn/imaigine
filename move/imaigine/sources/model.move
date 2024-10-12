@@ -6,17 +6,17 @@ module imaigine::model {
         creator: address,
         weights_link: String,
         trigger_word: String,
-        image_urls: vector<String>,
+        image_url: String,
         is_listed: bool,
     }
 
-    entry public fun create(weights_link: String, trigger_word: String, image_urls: vector<String>, ctx: &mut TxContext) {
+    entry public fun create(weights_link: String, trigger_word: String, image_url: String, ctx: &mut TxContext) {
         let model = Model {
             id: object::new(ctx),
             creator: ctx.sender(),
             weights_link,
             trigger_word,
-            image_urls,
+            image_url,
             is_listed: false,
         };
         
