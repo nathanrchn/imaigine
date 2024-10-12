@@ -1,7 +1,6 @@
 module imaigine::model {
     use sui::package;
     use std::string::String;
-    use kiosk::royalty_rule::Self;
     use sui::transfer_policy::{Self, TransferPolicy, TransferRequest};
     
     public struct Model has key, store {
@@ -27,11 +26,6 @@ module imaigine::model {
 
         transfer::public_share_object(model_policy);
         transfer::public_transfer(model_policy_cap, ctx.sender());
-
-        let (mut config_policy, config_policy_cap) = transfer_policy::new<Config>(&publisher, ctx);
-        royalty_rule::add<Config>(&mut config_policy, &config_policy_cap, 5, 0);
-        transfer::public_share_object(config_policy);
-        transfer::public_transfer(config_policy_cap, ctx.sender());
 
         transfer::public_transfer(publisher, ctx.sender());
     }

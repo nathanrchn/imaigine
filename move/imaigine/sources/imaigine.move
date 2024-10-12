@@ -1,12 +1,10 @@
 module imaigine::imaigine {
     use sui::sui::SUI;
-    use std::string::String;
     use sui::coin::{Self, Coin};
     use imaigine::model::Config;
-    use kiosk::royalty_rule::Self;
+    use sui::transfer_policy::TransferPolicy;
     use sui::kiosk::{Self, Kiosk, KioskOwnerCap};
     use imaigine::model::{Model, confirm_request};
-    use sui::transfer_policy::{Self, TransferPolicy, TransferRequest};
 
     public struct Imaigine has key {
         id: UID,
@@ -72,27 +70,15 @@ module imaigine::imaigine {
         kiosk::place_and_list(kiosk, cap, model, price)
     }
 
-    public fun use_model(model: ID, kiosk: &mut Kiosk, locked_cap: &LockedKioskOwnerCap, ctx: &mut TxContext): (&Config, TransferRequest<Config>) {
+    public fun use_model(model: ID, payment: Coin<SUI>, kiosk: &mut Kiosk, locked_cap: &LockedKioskOwnerCap): &Config {
         let cap = option::borrow<KioskOwnerCap>(&locked_cap.cap);
+
+        let profits = kiosk::profits_mut(kiosk, cap);
+        coin::put(profits, payment);
+
         let model = kiosk::borrow<Model>(kiosk, cap, model);
 
-        let config = model.config();
-
-        let request = transfer_policy::new_request<Config>(
-            object::id(config),
-            1,
-            object::id_from_address(ctx.sender()),
-        );
-
-        (config, request)
-    }
-
-    public fun pay_for_model_use(payment: Coin<SUI>, policy: &mut TransferPolicy<Config>, request: &mut TransferRequest<Config>) {
-        royalty_rule::pay<Config>(policy, request, payment);
-    }
-
-    public fun confirm_model_use(policy: &TransferPolicy<Config>, request: TransferRequest<Config>) {
-        transfer_policy::confirm_request<Config>(policy, request);
+        model.config()
     }
 
     public fun buy_model(model: ID, kiosk: &mut Kiosk, payment: Coin<SUI>, policy: &TransferPolicy<Model>): Model {
