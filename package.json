@@ -9,8 +9,10 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@ai-sdk/google": "^0.0.51",
     "@fal-ai/serverless-client": "^0.15.0",
     "@fal-ai/serverless-proxy": "^0.10.0",
+    "@hookform/resolvers": "^3.9.0",
     "@mysten/dapp-kit": "^0.14.25",
     "@mysten/sui": "^1.12.0",
     "@radix-ui/react-dialog": "^1.1.2",
@@ -24,6 +26,7 @@
     "@radix-ui/react-switch": "^1.1.1",
     "@radix-ui/react-toast": "^1.2.2",
     "@tanstack/react-query": "^5.59.13",
+    "ai": "^3.4.9",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "jszip": "^3.10.1",
@@ -32,8 +35,10 @@
     "next-themes": "^0.3.0",
     "react": "^18",
     "react-dom": "^18",
+    "react-hook-form": "^7.53.0",
     "tailwind-merge": "^2.5.3",
-    "tailwindcss-animate": "^1.0.7"
+    "tailwindcss-animate": "^1.0.7",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/node": "^20",

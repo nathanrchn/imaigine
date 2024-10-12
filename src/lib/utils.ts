@@ -42,3 +42,18 @@ export type FalModelResult = {
   config_file: FalFile;
   diffusers_lora_file: FalFile;
 }
+
+export type FalResult = {
+  images: {
+    url: string;
+    width: number;
+    height: number;
+    content_type: string;
+  }[];
+  timings: {
+    inference: number;
+  };
+  seed: number;
+  has_nsfw_content: boolean[];
+  prompt: string;
+}
