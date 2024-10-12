@@ -22,7 +22,7 @@ const formSchema = z.object({
 })
 
 export default function ModelCard({ model, personal, publishModel, buyModel }: { model: Model, personal: boolean, publishModel: (id: string, price: number) => void, buyModel: (id: string, price: number) => void }) {
-  const { id, owner, image_url, price } = model;
+  const { id, owner, image_url, price, model_type } = model;
   const currentAccount = useCurrentAccount();
   const [dialogOpen, setDialogOpen] = useState(false);
   const shortAddress = (address: string) => address.slice(0, 6) + "..." + address.slice(-4);
@@ -51,7 +51,7 @@ export default function ModelCard({ model, personal, publishModel, buyModel }: {
         {image_url ? <Image src={image_url} alt="Model Image" width={300} height={300} className="w-full h-auto object-cover rounded-md" /> : <div className="mx-auto h-[300px] w-[300px] object-cover rounded-md bg-gray-200" />}
       </CardContent>
       <CardFooter className="flex-1 justify-between">
-        <Link href={currentAccount ? `/generate/${id}` : {}}>
+        <Link href={currentAccount ? `/generate/${id}?type=${model_type}` : {}}>
           <Button className="ml-2" variant="outline" disabled={!currentAccount} >
             <Sparkles className="mr-2 h-4 w-4" color={colorFromAddress(id)} />Try this model
           </Button>

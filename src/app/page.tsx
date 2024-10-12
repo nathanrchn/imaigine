@@ -88,6 +88,7 @@ export default function Home() {
         image_url: content.fields.image_url,
         weights_link: content.fields.weights_link,
         trigger_word: content.fields.trigger_word,
+        model_type: content.fields.model_type,
       };
     });
   }

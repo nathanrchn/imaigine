@@ -9,14 +9,15 @@ import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { MIST_PER_SUI } from "@mysten/sui/utils";
-import { getModel, imagine, uploadImage } from "@/lib/actions";
+import { useSearchParams } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ToastAction } from "@/components/ui/toast";
 import { Textarea } from "@/components/ui/textarea";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Transaction } from "@mysten/sui/transactions";
-import { colorFromAddress, FalResult, Model } from "@/lib/utils";
+import { getModel, imagine, uploadImage } from "@/lib/actions";
 import { QueueStatus, subscribe } from "@fal-ai/serverless-client";
+import { colorFromAddress, FalResult, Model, ModelType } from "@/lib/utils";
 import { useSignAndExecuteTransaction, useSuiClient } from "@mysten/dapp-kit";
 import { FEES_PERCENTAGE, GENERATE_PRICE_IN_SUI, IMAIGINE_PACKAGE_ADDRESS, SUI_NETWORK, VAULT_ADDRESS } from "@/lib/consts";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -28,6 +29,8 @@ const formSchema = z.object({
 export default function GeneratePage({ params: { id } }: { params: { id: string } }) {
   const client = useSuiClient();
   const { toast } = useToast();
+  const searchParams = useSearchParams();
+  const modelType = searchParams.get("type") as ModelType;
   const { mutate: signAndExecuteTransaction } = useSignAndExecuteTransaction({
     execute: async ({ bytes, signature }) => 
       await client.executeTransactionBlock({
@@ -115,7 +118,7 @@ export default function GeneratePage({ params: { id } }: { params: { id: string 
   };
 
   const imaginePrompt = async () => {
-    const promptObject = await imagine(model!.trigger_word)
+    const promptObject = await imagine(model!.trigger_word, modelType!)
     form.setValue("prompt", promptObject.prompt)
   }
 

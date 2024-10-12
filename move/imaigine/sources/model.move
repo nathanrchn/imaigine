@@ -10,6 +10,7 @@ module imaigine::model {
         trigger_word: String,
         image_url: String,
         is_published: bool,
+        model_type: String,
     }
 
     public struct MODEL has drop {}
@@ -30,7 +31,7 @@ module imaigine::model {
         transfer_policy::confirm_request<Model>(policy, request);
     }
 
-    entry public fun create(weights_link: String, trigger_word: String, image_url: String, ctx: &mut TxContext) {
+    entry public fun create(weights_link: String, trigger_word: String, image_url: String, model_type: String, ctx: &mut TxContext) {
         let model = Model {
             id: object::new(ctx),
             owner: ctx.sender(),
@@ -38,6 +39,7 @@ module imaigine::model {
             trigger_word,
             image_url,
             is_published: false,
+            model_type,
         };
         
         transfer::public_transfer(model, ctx.sender());

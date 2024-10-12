@@ -28,6 +28,7 @@ export type Model = {
   weights_link: string;
   trigger_word: string;
   image_url: string;
+  model_type: ModelType;
   price?: number;
 }
 

@@ -14,17 +14,27 @@ import { FalModelResult, FalResult, Model, ModelType, nanoid } from "./utils";
 
 const client = new SuiClient({ url: getFullnodeUrl(SUI_NETWORK) });
 
-export const imagine = async (triggerWord: string) => {
+export const imagine = async (triggerWord: string, modelType: ModelType) => {
+  let promptInstruction = "";
+
+  if (modelType === "people") {
+    promptInstruction = `Generate a creative and funny prompt for a text-to-image AI model featuring a person named ${triggerWord} in an amusing situation. The prompt MUST specify that their face is clearly visible. Be imaginative and humorous while ensuring the person's facial features are a key part of the scene.`;
+  } else if (modelType === "style") {
+    promptInstruction = `image of X in style of ${triggerWord}, Generate an artistic prompt for a text-to-image AI model showcasing a unique visual style. Focus on describing the aesthetic elements`;
+  } else {
+    promptInstruction = `Generate an engaging prompt for a text-to-image AI model. This is a fine-tuned version of a diffusion model. Incorporate this trigger word: ${triggerWord}`;
+  }
+
   const { object: promptObject } = await generateObject({
     model: google("gemini-1.5-flash-latest"),
-    prompt: "Generate a good prompt for a text to image ai model. This is a fine tuned version of a diffusion model. Use this trigger word: " + triggerWord,
+    prompt: promptInstruction,
     schema: z.object({
       prompt: z.string().describe("The prompt to generate an image from"),
     }),
-    temperature: 0.5,
+    temperature: 0.7,
   })
 
-  return promptObject
+  return promptObject;
 }
 
 export const getTriggerWord = async (url: string) => {
@@ -40,16 +50,7 @@ export const generateExampleImage = async (requestId: string, modelType: ModelTy
 
   const triggerWord = await getTriggerWord(result.config_file.url);
 
-  const { object: promptObject } = await generateObject({
-    model: google("gemini-1.5-flash-latest"),
-    prompt: "Generate a good prompt for a text to image ai model. This is a fine tuned version of a diffusion model. Use this trigger word: " + triggerWord,
-    schema: z.object({
-      prompt: z.string().describe("The prompt to generate an image from"),
-    }),
-    temperature: 0.5,
-  })
-
-  const prompt = promptObject.prompt;
+  const prompt = await imagine(triggerWord, modelType);
 
   const imageResult: FalResult = await subscribe("fal-ai/flux-lora", {
     input: {
@@ -83,6 +84,7 @@ export const getModel = async (id: string): Promise<Model> => {
       weights_link: content.fields.weights_link,
       trigger_word: content.fields.trigger_word,
       image_url: content.fields.image_url,
+      model_type: content.fields.model_type,
   }
 }
 
@@ -128,6 +130,7 @@ export const getKioskModels = async (kioskId: string): Promise<Model[]> => {
       weights_link: content.fields.weights_link,
       image_url: content.fields.image_url,
       trigger_word: content.fields.trigger_word,
+      model_type: content.fields.model_type,
     }
   });
 }
