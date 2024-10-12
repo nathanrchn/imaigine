@@ -11,10 +11,10 @@ import { KioskClient, Network } from "@mysten/kiosk";
 
 const client = new SuiClient({ url: getFullnodeUrl(SUI_NETWORK) });
 
-export const imagine = async (model: Model) => {
+export const imagine = async (triggerWord: string) => {
   const { object: promptObject } = await generateObject({
     model: google("gemini-1.5-flash-latest"),
-    prompt: "Generate a good prompt for a text to image ai model. This is a fine tuned version of a diffusion model. Use this trigger word: " + model.trigger_word,
+    prompt: "Generate a good prompt for a text to image ai model. This is a fine tuned version of a diffusion model. Use this trigger word: " + triggerWord,
     schema: z.object({
       prompt: z.string().describe("The prompt to generate an image from"),
     }),
@@ -30,7 +30,7 @@ export const getTriggerWord = async (url: string) => {
   return data.trigger_word;
 }
 
-export const getModel = async (id: string): Promise<Model> => {
+export const getTriggerWordFromModel = async (id: string): Promise<string> => {
   const result = await client.getObject({
     id: id,
     options: {
@@ -39,14 +39,7 @@ export const getModel = async (id: string): Promise<Model> => {
   });
 
   const content = result.data!.content! as any;
-
-  return {
-    id: result.data!.objectId,
-    creator: content.fields.creator,
-    image_url: content.fields.image_url,
-    weights_link: content.fields.weights_link,
-    trigger_word: content.fields.trigger_word,
-  }
+  return content.fields.trigger_word;
 }
 
 

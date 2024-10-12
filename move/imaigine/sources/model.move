@@ -56,4 +56,8 @@ module imaigine::model {
     public fun config(self: &Model): &Config {
         &self.config
     }
+
+    public fun trigger_word(self: &Model): String {
+        self.config.trigger_word
+    }
 }

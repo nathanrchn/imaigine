@@ -70,19 +70,19 @@ module imaigine::imaigine {
         kiosk::place_and_list(kiosk, cap, model, price)
     }
 
-    public fun use_model(model: ID, payment: Coin<SUI>, kiosk: &mut Kiosk, locked_cap: &LockedKioskOwnerCap): &Config {
+    public fun use_model(model: address, payment: Coin<SUI>, kiosk: &mut Kiosk, locked_cap: &LockedKioskOwnerCap): &Config {
         let cap = option::borrow<KioskOwnerCap>(&locked_cap.cap);
 
         let profits = kiosk::profits_mut(kiosk, cap);
         coin::put(profits, payment);
 
-        let model = kiosk::borrow<Model>(kiosk, cap, model);
+        let model = kiosk::borrow<Model>(kiosk, cap, object::id_from_address(model));
 
         model.config()
     }
 
-    public fun buy_model(model: ID, kiosk: &mut Kiosk, payment: Coin<SUI>, policy: &TransferPolicy<Model>): Model {
-        let (model, request) = kiosk::purchase<Model>(kiosk, model, payment);
+    public fun buy_model(model: address, kiosk: &mut Kiosk, payment: Coin<SUI>, policy: &TransferPolicy<Model>): Model {
+        let (model, request) = kiosk::purchase<Model>(kiosk, object::id_from_address(model), payment);
 
         confirm_request(policy, request);
         model

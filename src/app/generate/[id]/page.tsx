@@ -2,13 +2,13 @@
 
 import { z } from "zod";
 import Image from "next/image";
+import { getTriggerWordFromModel, imagine } from "@/lib/actions";
 import { useForm } from "react-hook-form";
 import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Link, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MIST_PER_SUI } from "@mysten/sui/utils";
-import { getModel, imagine } from "@/lib/actions";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ToastAction } from "@/components/ui/toast";
 import { Textarea } from "@/components/ui/textarea";
@@ -17,7 +17,7 @@ import { Transaction } from "@mysten/sui/transactions";
 import { colorFromAddress, FalResult, Model } from "@/lib/utils";
 import { QueueStatus, subscribe } from "@fal-ai/serverless-client";
 import { useSignAndExecuteTransaction, useSuiClient } from "@mysten/dapp-kit";
-import { GENERATE_PRICE_IN_SUI, IMAIGINE_PACKAGE_ADDRESS, SUI_NETWORK, VAULT_ADDRESS } from "@/lib/consts";
+import { FEES_PERCENTAGE, GENERATE_PRICE_IN_SUI, IMAIGINE_PACKAGE_ADDRESS, SUI_NETWORK, VAULT_ADDRESS } from "@/lib/consts";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 
 const formSchema = z.object({
@@ -41,13 +41,13 @@ export default function GeneratePage({ params: { id } }: { params: { id: string 
   
   const [hasMinted, setHasMinted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [model, setModel] = useState<Model | null>(null);
   const [image, setImage] = useState<FalResult | null>(null);
   const [lastPrompt, setLastPrompt] = useState<string | null>(null);
+  const [triggerWord, setTriggerWord] = useState<string | null>(null);
 
   useEffect(() => {
-    getModel(id).then((result) => {
-      setModel(result);
+    getTriggerWordFromModel(id).then((result) => {
+      setTriggerWord(result);
     });
   }, []);
 
@@ -92,13 +92,22 @@ export default function GeneratePage({ params: { id } }: { params: { id: string 
     setLastPrompt(data.prompt);
     const tx = new Transaction();
 
-    const [coin] = tx.splitCoins(tx.gas, [BigInt(GENERATE_PRICE_IN_SUI) * MIST_PER_SUI])
-    tx.transferObjects([coin], VAULT_ADDRESS)
+    const [generation_coin] = tx.splitCoins(tx.gas, [BigInt(GENERATE_PRICE_IN_SUI) * MIST_PER_SUI])
+    const [use_model_coin] = tx.splitCoins(generation_coin, [BigInt(FEES_PERCENTAGE) * BigInt(GENERATE_PRICE_IN_SUI) * MIST_PER_SUI])
+    tx.transferObjects([generation_coin], VAULT_ADDRESS)
+
+    tx.moveCall({
+      target: `${IMAIGINE_PACKAGE_ADDRESS}::imaigine::use_model`,
+      arguments: [
+        tx.pure.address(id),
+        use_model_coin,
+      ]
+    })
 
     signAndExecuteTransaction({ transaction: tx }, { onSuccess: async () => {
       client.getObject({
         id: id
-      }).then((res) => {
+      }).then(() => {
         generateImage(
           model!.weights_link,
           data.prompt
@@ -111,7 +120,7 @@ export default function GeneratePage({ params: { id } }: { params: { id: string 
   };
 
   const imaginePrompt = async () => {
-    const promptObject = await imagine(model!)
+    const promptObject = await imagine(triggerWord!)
     form.setValue("prompt", promptObject.prompt)
   }
 

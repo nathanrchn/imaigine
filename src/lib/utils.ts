@@ -22,11 +22,15 @@ export function colorFromAddress(address: string): string {
 
 export type ModelType = "people" | "style" | "other";
 
+export type ModelConfig = {
+  weights_link: string;
+  trigger_word: string;
+}
+
 export type Model = {
   id: string;
   creator: string;
-  weights_link: string;
-  trigger_word: string;
+  config: ModelConfig;
   image_url: string;
   price?: number;
 }
