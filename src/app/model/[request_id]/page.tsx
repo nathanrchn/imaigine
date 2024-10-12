@@ -79,7 +79,8 @@ export default function ModelPage({ params: { request_id } }: { params: { reques
       arguments: [
         tx.pure.string(result.diffusers_lora_file.url),
         tx.pure.string(triggerWord),
-        tx.pure.string(image_url)
+        tx.pure.string(image_url),
+        tx.pure.string(modelType)
       ]
     })
 

@@ -31,7 +31,7 @@ export const imagine = async (triggerWord: string, modelType: ModelType) => {
     schema: z.object({
       prompt: z.string().describe("The prompt to generate an image from"),
     }),
-    temperature: 0.7,
+    temperature: 0.3,
   })
 
   return promptObject;
@@ -50,7 +50,7 @@ export const generateExampleImage = async (requestId: string, modelType: ModelTy
 
   const triggerWord = await getTriggerWord(result.config_file.url);
 
-  const prompt = await imagine(triggerWord, modelType);
+  const { prompt } = await imagine(triggerWord, modelType);
 
   const imageResult: FalResult = await subscribe("fal-ai/flux-lora", {
     input: {
