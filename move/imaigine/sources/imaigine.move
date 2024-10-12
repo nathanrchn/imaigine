@@ -1,10 +1,17 @@
 module imaigine::imaigine {
     use sui::sui::SUI;
-    use sui::coin::Coin;
     use std::string::String;
-    use sui::transfer_policy::TransferPolicy;
+    use sui::coin::{Self, Coin};
+    use imaigine::model::Config;
+    use kiosk::royalty_rule::Self;
     use sui::kiosk::{Self, Kiosk, KioskOwnerCap};
     use imaigine::model::{Model, confirm_request};
+    use sui::transfer_policy::{Self, TransferPolicy, TransferRequest};
+
+    public struct Imaigine has key {
+        id: UID,
+        kiosks: vector<address>
+    }
 
     public struct LockedKioskOwnerCap has key {
         id: UID,
@@ -17,14 +24,24 @@ module imaigine::imaigine {
         cap_id: ID
     }
 
-    entry fun default(ctx: &mut TxContext) {
-        transfer::transfer(new(ctx), ctx.sender());
+    fun init(ctx: &mut TxContext) {
+        let imaigine = Imaigine {
+            id: object::new(ctx),
+            kiosks: vector::empty()
+        };
+
+        transfer::share_object(imaigine);
     }
 
-    public fun new(ctx: &mut TxContext): LockedKioskOwnerCap {
+    entry fun default(imaigine: &mut Imaigine, ctx: &mut TxContext) {
+        transfer::transfer(new(imaigine, ctx), ctx.sender());
+    }
+
+    public fun new(imaigine: &mut Imaigine, ctx: &mut TxContext): LockedKioskOwnerCap {
         let (kiosk, cap) = kiosk::new(ctx);
 
-       transfer::public_share_object(kiosk);
+        vector::push_back(&mut imaigine.kiosks, object::id_address(&kiosk));
+        transfer::public_share_object(kiosk);
 
         LockedKioskOwnerCap {
             id: object::new(ctx),
@@ -55,12 +72,27 @@ module imaigine::imaigine {
         kiosk::place_and_list(kiosk, cap, model, price)
     }
 
-    entry public fun use_model(model: ID, kiosk: &Kiosk, locked_cap: &LockedKioskOwnerCap): String {
+    public fun use_model(model: ID, kiosk: &mut Kiosk, locked_cap: &LockedKioskOwnerCap, ctx: &mut TxContext): (&Config, TransferRequest<Config>) {
         let cap = option::borrow<KioskOwnerCap>(&locked_cap.cap);
-
         let model = kiosk::borrow<Model>(kiosk, cap, model);
 
-        model.weights_link()
+        let config = model.config();
+
+        let request = transfer_policy::new_request<Config>(
+            object::id(config),
+            1,
+            object::id_from_address(ctx.sender()),
+        );
+
+        (config, request)
+    }
+
+    public fun pay_for_model_use(payment: Coin<SUI>, policy: &mut TransferPolicy<Config>, request: &mut TransferRequest<Config>) {
+        royalty_rule::pay<Config>(policy, request, payment);
+    }
+
+    public fun confirm_model_use(policy: &TransferPolicy<Config>, request: TransferRequest<Config>) {
+        transfer_policy::confirm_request<Config>(policy, request);
     }
 
     public fun buy_model(model: ID, kiosk: &mut Kiosk, payment: Coin<SUI>, policy: &TransferPolicy<Model>): Model {
