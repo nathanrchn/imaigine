@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
+import { useState } from "react";
+import { Loader2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import { useState, useEffect } from "react";
-import { getTriggerWord } from "@/lib/actions";
 import { Button } from "@/components/ui/button";
 import { queue } from "@fal-ai/serverless-client";
 import { useSearchParams } from "next/navigation";
@@ -12,6 +13,7 @@ import { Progress } from "@/components/ui/progress";
 import { Transaction } from "@mysten/sui/transactions";
 import { FalModelResult, ModelType } from "@/lib/utils";
 import { FalStream } from "@fal-ai/serverless-client/src/streaming";
+import { generateExampleImage, getTriggerWord } from "@/lib/actions";
 import { IMAIGINE_PACKAGE_ADDRESS, SUI_NETWORK } from "@/lib/consts";
 import { useSignAndExecuteTransaction, useSuiClient } from "@mysten/dapp-kit";
 import { InProgressQueueStatus, QueueStatus } from "@fal-ai/serverless-client/src/types";
@@ -20,6 +22,8 @@ export default function ModelPage({ params: { request_id } }: { params: { reques
   const client = useSuiClient();
   const [process, setProcess] = useState(0);
   const [finished, setFinished] = useState(false);
+  const [image_url, setImageUrl] = useState<string | null>(null);
+  const [isGeneratingExampleImage, setIsGeneratingExampleImage] = useState(false);
 
   const searchParams = useSearchParams();
   const modelType = searchParams.get("type") as ModelType;
@@ -35,10 +39,6 @@ export default function ModelPage({ params: { request_id } }: { params: { reques
         }
       })
   });
-
-  useEffect(() => {
-    console.log("Model Type:", modelType);
-  }, [modelType]);
 
   const streamStatusPromise: Promise<FalStream<unknown, QueueStatus>> = queue.streamStatus("fal-ai/flux-lora-fast-training", {
     requestId: request_id,
@@ -57,7 +57,7 @@ export default function ModelPage({ params: { request_id } }: { params: { reques
       }
     });
 
-    streamStatus.on("done", (data: QueueStatus) => {
+    streamStatus.on("done", () => {
       setProcess(100);
       setFinished(true);
     });
@@ -77,7 +77,7 @@ export default function ModelPage({ params: { request_id } }: { params: { reques
       arguments: [
         tx.pure.string(result.diffusers_lora_file.url),
         tx.pure.string(triggerWord),
-        tx.pure.vector("vector<string>", [])
+        tx.pure.vector("vector<string>", image_url ? [[image_url]] : [[]])
       ]
     })
 
@@ -115,12 +115,28 @@ export default function ModelPage({ params: { request_id } }: { params: { reques
           </div>
         </div>
 
+        <div className="mb-4 flex justify-center">
+          {image_url && <Image src={image_url} alt="Example Image" width={512} height={512} className="rounded-xl" />}
+        </div>
+
         {finished ? (
           <div className="text-center">
-            <p className="text-lg font-semibold mb-4">Training Complete!</p>
-            <Button onClick={mintModelNft} className="w-full md:w-auto">
-              Mint Model NFT
-            </Button>
+            {image_url ? (
+              <Button onClick={mintModelNft} className="w-full md:w-auto">
+                Mint Model NFT
+              </Button>
+            ) : (
+              <Button onClick={() => {
+                setIsGeneratingExampleImage(true);
+                generateExampleImage(request_id, modelType).then((imageResult) => {
+                  setImageUrl(imageResult);
+                  setIsGeneratingExampleImage(false);
+                });
+              }} className="w-full md:w-auto">
+                {isGeneratingExampleImage && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isGeneratingExampleImage ? "Generating..." : "Generate Example Image"}
+              </Button>
+            )}
           </div>
         ) : (
           <div className="text-center">
