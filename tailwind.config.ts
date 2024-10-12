@@ -7,6 +7,14 @@ const config: Config = {
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
+  safelist: [
+    {
+      pattern: /from-(red|orange|yellow|green|blue)-500/,
+    },
+    {
+      pattern: /to-(red|orange|yellow|green|blue)-500/,
+    },
+  ],
   theme: {
   	extend: {
   		colors: {

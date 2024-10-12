@@ -21,8 +21,8 @@ const formSchema = z.object({
   price: z.number().min(0, "Price must be a positive number"),
 })
 
-export default function ModelCard({ model, personal, publishModel, buyModel }: { model: Model, personal: boolean, publishModel: (id: string, price: number) => void, buyModel: (id: string) => void }) {
-  const { id, creator, image_url, price } = model;
+export default function ModelCard({ model, personal, publishModel, buyModel }: { model: Model, personal: boolean, publishModel: (id: string, price: number) => void, buyModel: (id: string, price: number) => void }) {
+  const { id, owner, image_url, price } = model;
   const currentAccount = useCurrentAccount();
   const [dialogOpen, setDialogOpen] = useState(false);
   const shortAddress = (address: string) => address.slice(0, 6) + "..." + address.slice(-4);
@@ -44,7 +44,7 @@ export default function ModelCard({ model, personal, publishModel, buyModel }: {
       <CardHeader>
         <CardTitle className="text-lg font-bold">{shortAddress(id)}</CardTitle>
         <div className="text-sm text-gray-500 flex items-center">
-          <Avatar address={creator} />{shortAddress(creator)}
+          <Avatar address={owner} />{shortAddress(owner)}
         </div>
       </CardHeader>
       <CardContent>
@@ -56,11 +56,17 @@ export default function ModelCard({ model, personal, publishModel, buyModel }: {
             <Sparkles className="mr-2 h-4 w-4" color={colorFromAddress(id)} />Try this model
           </Button>
         </Link>
-        {price !== undefined && price !== null && <Button className="mr-2 text-[#597fff] font-bold" variant="outline" disabled={!currentAccount} onClick={() => buyModel(id)}>Buy it for {price} SUI</Button>}
+        {price !== undefined && price !== null && (
+          <Button className="mr-2 text-[#597fff] font-bold" variant="outline" disabled={!currentAccount} onClick={() => buyModel(id, price)}>
+            Buy it for {price} SUI
+          </Button>
+        )}
         {!price && personal && (
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger>
-              <Button className="mr-2 text-[#597fff] font-bold" variant="outline" disabled={!currentAccount}>Publish Model</Button>
+            <DialogTrigger asChild>
+              <Button className="mr-2 text-[#597fff] font-bold" variant="outline" disabled={!currentAccount}>
+                Publish Model
+              </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>

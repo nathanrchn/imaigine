@@ -5,15 +5,11 @@ module imaigine::model {
     
     public struct Model has key, store {
         id: UID,
-        config: Config,
-        image_url: String,
-        is_published: bool,
-    }
-
-    public struct Config has key, store {
-        id: UID,
+        owner: address,
         weights_link: String,
         trigger_word: String,
+        image_url: String,
+        is_published: bool,
     }
 
     public struct MODEL has drop {}
@@ -37,11 +33,9 @@ module imaigine::model {
     entry public fun create(weights_link: String, trigger_word: String, image_url: String, ctx: &mut TxContext) {
         let model = Model {
             id: object::new(ctx),
-            config: Config {
-                id: object::new(ctx),
-                weights_link,
-                trigger_word,
-            },
+            owner: ctx.sender(),
+            weights_link,
+            trigger_word,
             image_url,
             is_published: false,
         };
@@ -53,11 +47,7 @@ module imaigine::model {
         self.is_published = true;
     }
 
-    public fun config(self: &Model): &Config {
-        &self.config
-    }
-
-    public fun trigger_word(self: &Model): String {
-        self.config.trigger_word
+    public fun set_owner(self: &mut Model, owner: address) {
+        self.owner = owner;
     }
 }

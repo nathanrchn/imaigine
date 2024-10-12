@@ -8,8 +8,8 @@ import Context from "./context";
 import Header from "@/components/header";
 
 export const metadata: Metadata = {
-  title: "Imaiagine",
-  description: "Imaiagine",
+  title: "Imaigine",
+  description: "Imaigine",
 };
 
 export default function RootLayout({
@@ -18,7 +18,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body>
         <Context>
           <div className="min-h-[8vh] flex flex-col justify-center items-center">

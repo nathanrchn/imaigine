@@ -2,18 +2,22 @@
 
 import { Model } from "@/lib/utils";
 import { useEffect, useState } from "react";
-import { getKioskModels } from "@/lib/actions";
+import { KioskOwnerCap } from "@mysten/kiosk";
 import ModelCard from "@/components/model-card";
+import { MIST_PER_SUI } from "@mysten/sui/utils";
 import { Separator } from "@/components/ui/separator";
 import { Transaction } from "@mysten/sui/transactions";
-import { IMAIGINE_ADDRESS, IMAIGINE_PACKAGE_ADDRESS, KIOSK_ID } from "@/lib/consts";
+import { getKioskModels, getKiosks, getOwnedKiosksCaps } from "@/lib/actions";
 import { useCurrentAccount, useSignAndExecuteTransaction, useSuiClient } from "@mysten/dapp-kit";
+import { IMAIGINE_ADDRESS, IMAIGINE_PACKAGE_ADDRESS, MODEL_TRANSFER_POLICY_ADDRESS } from "@/lib/consts";
 
 export default function Home() {
   const client = useSuiClient();
   const currentAccount = useCurrentAccount();
   const [models, setModels] = useState<Model[]>([]);
+  const [modelToKiosk, setModelToKiosk] = useState<Record<string, string>>({});
   const [personalModels, setPersonalModels] = useState<Model[]>([]);
+  const [ownedKiosksCaps, setOwnedKiosksCaps] = useState<KioskOwnerCap[]>([]);
   const { mutate: signAndExecuteTransaction } = useSignAndExecuteTransaction({
     execute: async ({ bytes, signature }) => 
       await client.executeTransactionBlock({
@@ -27,10 +31,33 @@ export default function Home() {
   });
 
   useEffect(() => {
-    getKioskModels("").then((models) => {
-      setModels(models);
-    });
+    const fetchModels = async () => {
+      const kiosks = await getKiosks();
+      const allModels: Model[] = [];
+      const kioskMap: Record<string, string> = {};
+
+      for (const kiosk of kiosks) {
+        const kioskModels = await getKioskModels(kiosk);
+        allModels.push(...kioskModels);
+        kioskModels.forEach((model) => {
+          kioskMap[model.id] = kiosk;
+        });
+      }
+
+      setModels(allModels);
+      setModelToKiosk(kioskMap);
+    };
+
+    fetchModels();
   }, []);
+
+  useEffect(() => {
+    if (!currentAccount) return;
+
+    getOwnedKiosksCaps(currentAccount.address).then((caps) => {
+      setOwnedKiosksCaps(caps);
+    });
+  }, [currentAccount]);
 
   const getPersonalModels = async (): Promise<Model[]> => {
     if (!currentAccount) return [];
@@ -57,10 +84,10 @@ export default function Home() {
 
       return {
         id: obj.data!.objectId,
-        creator: content.fields.creator,
+        owner: content.fields.owner,
         image_url: content.fields.image_url,
-        weights_link: content.fields.config.fields.weights_link,
-        trigger_word: content.fields.config.fields.trigger_word,
+        weights_link: content.fields.weights_link,
+        trigger_word: content.fields.trigger_word,
       };
     });
   }
@@ -74,55 +101,72 @@ export default function Home() {
   const publishModel = (id: string, price: number) => {
     const tx = new Transaction();
 
+    let kiosk: any;
+    let cap: any;
+
+    if (ownedKiosksCaps.length === 0) {
+      const [newKiosk, newCap] = tx.moveCall({
+        target: `${IMAIGINE_PACKAGE_ADDRESS}::imaigine::new_kiosk`,
+        arguments: [
+          tx.object(IMAIGINE_ADDRESS),
+        ]
+      });
+
+      kiosk = newKiosk;
+      cap = newCap;
+    }
+
     tx.moveCall({
-      target: `${IMAIGINE_PACKAGE_ADDRESS}::model::list_model`,
+      target: `${IMAIGINE_PACKAGE_ADDRESS}::model::publish_model`,
       arguments: [
         tx.object(id),
       ]
     })
 
     tx.moveCall({
-      target: `${IMAIGINE_PACKAGE_ADDRESS}::main::place_and_list`,
+      target: `${IMAIGINE_PACKAGE_ADDRESS}::imaigine::publish_model`,
       arguments: [
         tx.object(id),
         tx.pure.u64(price),
-        tx.object(KIOSK_ID),
-        tx.object(IMAIGINE_ADDRESS),
+        ownedKiosksCaps.length > 0 ? tx.object(ownedKiosksCaps[0].kioskId) : kiosk,
+        ownedKiosksCaps.length > 0 ? tx.object(ownedKiosksCaps[0].objectId) : cap,
       ]
     })
 
-    signAndExecuteTransaction({ transaction: tx }, { onSuccess: () => {
-      getPersonalModels().then((models) => {
-        setPersonalModels(models);
-      });
+    if (ownedKiosksCaps.length === 0) {
+      tx.transferObjects([kiosk], currentAccount!.address);
+      tx.transferObjects([cap], currentAccount!.address);
+    }
 
-      getKioskModels("").then((models) => {
-        setModels(models);
-      });
-    }});
+    signAndExecuteTransaction({ transaction: tx });
   }
 
-  const buyModel = (id: string) => {
+  const buyModel = (id: string, price: number) => {
     const tx = new Transaction();
 
-    tx.moveCall({
-      target: `${IMAIGINE_PACKAGE_ADDRESS}::main::buy_model`,
+    const [coin] = tx.splitCoins(tx.gas, [BigInt(price) * MIST_PER_SUI])
+
+    const model = tx.moveCall({
+      target: `${IMAIGINE_PACKAGE_ADDRESS}::imaigine::buy_model`,
       arguments: [
         tx.pure.address(id),
-        tx.object(KIOSK_ID),
-        tx.object(IMAIGINE_ADDRESS),
+        tx.object(modelToKiosk[id]),
+        coin,
+        tx.object(MODEL_TRANSFER_POLICY_ADDRESS),
       ]
     })
 
-    signAndExecuteTransaction({ transaction: tx }, { onSuccess: () => {
-      getPersonalModels().then((models) => {
-        setPersonalModels(models);
-      });
+    tx.moveCall({
+      target: `${IMAIGINE_PACKAGE_ADDRESS}::model::set_owner`,
+      arguments: [
+        model,
+        tx.pure.address(currentAccount!.address),
+      ]
+    })
 
-      getKioskModels("").then((models) => {
-        setModels(models);
-      });
-    }});
+    tx.transferObjects([model], currentAccount!.address);
+
+    signAndExecuteTransaction({ transaction: tx });
   }
 
   return (

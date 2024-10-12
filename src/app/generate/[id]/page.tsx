@@ -2,13 +2,13 @@
 
 import { z } from "zod";
 import Image from "next/image";
-import { getTriggerWordFromModel, imagine } from "@/lib/actions";
 import { useForm } from "react-hook-form";
 import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Link, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MIST_PER_SUI } from "@mysten/sui/utils";
+import { getModel, imagine } from "@/lib/actions";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ToastAction } from "@/components/ui/toast";
 import { Textarea } from "@/components/ui/textarea";
@@ -41,13 +41,13 @@ export default function GeneratePage({ params: { id } }: { params: { id: string 
   
   const [hasMinted, setHasMinted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [model, setModel] = useState<Model | null>(null);
   const [image, setImage] = useState<FalResult | null>(null);
   const [lastPrompt, setLastPrompt] = useState<string | null>(null);
-  const [triggerWord, setTriggerWord] = useState<string | null>(null);
-
+  
   useEffect(() => {
-    getTriggerWordFromModel(id).then((result) => {
-      setTriggerWord(result);
+    getModel(id).then((result) => {
+      setModel(result);
     });
   }, []);
 
@@ -95,14 +95,7 @@ export default function GeneratePage({ params: { id } }: { params: { id: string 
     const [generation_coin] = tx.splitCoins(tx.gas, [BigInt(GENERATE_PRICE_IN_SUI) * MIST_PER_SUI])
     const [use_model_coin] = tx.splitCoins(generation_coin, [BigInt(FEES_PERCENTAGE) * BigInt(GENERATE_PRICE_IN_SUI) * MIST_PER_SUI])
     tx.transferObjects([generation_coin], VAULT_ADDRESS)
-
-    tx.moveCall({
-      target: `${IMAIGINE_PACKAGE_ADDRESS}::imaigine::use_model`,
-      arguments: [
-        tx.pure.address(id),
-        use_model_coin,
-      ]
-    })
+    tx.transferObjects([use_model_coin], model!.owner)
 
     signAndExecuteTransaction({ transaction: tx }, { onSuccess: async () => {
       client.getObject({
@@ -120,7 +113,7 @@ export default function GeneratePage({ params: { id } }: { params: { id: string 
   };
 
   const imaginePrompt = async () => {
-    const promptObject = await imagine(triggerWord!)
+    const promptObject = await imagine(model!.trigger_word)
     form.setValue("prompt", promptObject.prompt)
   }
 

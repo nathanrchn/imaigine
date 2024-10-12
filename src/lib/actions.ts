@@ -3,11 +3,11 @@
 import { z } from "zod";
 import { Model } from "./utils";
 import { generateObject } from "ai";
-import { SUI_NETWORK } from "./consts";
+import { IMAIGINE_ADDRESS, SUI_NETWORK } from "./consts";
 import { google } from "@ai-sdk/google";
 import { SuiClient } from "@mysten/sui/client";
 import { getFullnodeUrl } from "@mysten/sui/client";
-import { KioskClient, Network } from "@mysten/kiosk";
+import { KioskClient, KioskOwnerCap, Network } from "@mysten/kiosk";
 
 const client = new SuiClient({ url: getFullnodeUrl(SUI_NETWORK) });
 
@@ -30,20 +30,43 @@ export const getTriggerWord = async (url: string) => {
   return data.trigger_word;
 }
 
-export const getTriggerWordFromModel = async (id: string): Promise<string> => {
+export const getModel = async (id: string): Promise<Model> => {
   const result = await client.getObject({
-    id: id,
-    options: {
-    showContent: true,
-    }
+      id: id,
+      options: {
+        showContent: true,
+      }
   });
 
   const content = result.data!.content! as any;
-  return content.fields.trigger_word;
+
+  return {
+      id: result.data!.objectId,
+      owner: content.fields.owner,
+      weights_link: content.fields.weights_link,
+      trigger_word: content.fields.trigger_word,
+      image_url: content.fields.image_url,
+  }
 }
 
+export const getKiosks = async (): Promise<string[]> => {
+  const result = await client.getObject({
+      id: IMAIGINE_ADDRESS,
+      options: {
+        showContent: true,
+      }
+  });
+
+  const content = result.data!.content! as any;
+  return content.fields.kiosks;
+}
 
 const kioskClient = new KioskClient({ client: client as any, network: Network.TESTNET });
+
+export const getOwnedKiosksCaps = async (address: string): Promise<KioskOwnerCap[]> => {
+  const { kioskOwnerCaps } =  await kioskClient.getOwnedKiosks({ address });
+  return kioskOwnerCaps;
+}
 
 export const getKioskModels = async (kioskId: string): Promise<Model[]> => {
   const response = await kioskClient.getKiosk({
@@ -63,7 +86,7 @@ export const getKioskModels = async (kioskId: string): Promise<Model[]> => {
 
     return {
       id: item.objectId,
-      creator: content.fields.creator,
+      owner: content.fields.owner,
       price: Number(item.listing!.price!),
       weights_link: content.fields.weights_link,
       image_url: content.fields.image_url,
