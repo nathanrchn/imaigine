@@ -5,6 +5,7 @@ import { Separator } from "@/components/ui/separator";
 
 import "./globals.css";
 import Context from "./context";
+import Header from "@/components/header";
 
 export const metadata: Metadata = {
   title: "Imaiagine",
@@ -21,10 +22,12 @@ export default function RootLayout({
       <body>
         <Context>
           <div className="min-h-[10vh] flex flex-col justify-center items-center">
-            <h1> Imaigine </h1>
+            <Header />
           </div>
           <Separator />
-          <main className="flex min-h-[90vh]">{children}</main>
+          <main className="flex min-h-[90vh]">
+            {children}
+          </main>
           <Toaster />
         </Context>
       </body>
