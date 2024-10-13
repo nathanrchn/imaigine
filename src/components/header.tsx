@@ -14,8 +14,8 @@ import { MIST_PER_SUI } from "@mysten/sui/utils";
 import { Loader2, Moon, Sun } from "lucide-react";
 import { Transaction } from "@mysten/sui/transactions";
 import { storage, queue } from "@fal-ai/serverless-client";
-import { GENERATE_PRICE_IN_SUI, VAULT_ADDRESS } from "@/lib/consts";
 import { EnqueueResult } from "@fal-ai/serverless-client/src/types";
+import { FINE_TUNE_PRICE_IN_SUI, VAULT_ADDRESS } from "@/lib/consts";
 import { ConnectButton, useSignAndExecuteTransaction } from "@mysten/dapp-kit";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Dialog, DialogContent, DialogTrigger, DialogTitle, DialogDescription } from "./ui/dialog";
@@ -69,7 +69,7 @@ export default function Header() {
     const triggerWord = nanoid();
 
     const tx = new Transaction();
-    const [coin] = tx.splitCoins(tx.gas, [BigInt(GENERATE_PRICE_IN_SUI) * MIST_PER_SUI])
+    const [coin] = tx.splitCoins(tx.gas, [BigInt(FINE_TUNE_PRICE_IN_SUI) * MIST_PER_SUI])
     tx.transferObjects([coin], VAULT_ADDRESS)
 
     signAndExecuteTransaction({ transaction: tx }, { onSuccess: async () => {

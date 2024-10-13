@@ -71,6 +71,7 @@ export default function ModelPage({ params: { request_id } }: { params: { reques
     const triggerWord = await getTriggerWord(result.config_file.url);
 
     const image_url: string = await uploadImage(imageData?.url || "");
+    // const image_url = "https://whzgbhdnyfdzygagqblf.supabase.co/storage/v1/object/public/images/public/PDMUSEXYTJ.jpeg";
 
     const tx = new Transaction();
 

@@ -3,5 +3,6 @@ export const IMAIGINE_ADDRESS = "0x490d603d84232bcdedfdaaa3fa509813a65859ffb0050
 export const VAULT_ADDRESS = "0x4d32276f27600b6118ba65274ceeac0faf95d12c791bce334ab5782dc6701d39";
 export const MODEL_TRANSFER_POLICY_ADDRESS = "0x961b6518038f05b3b7ff82f19a88ed43d7bab188d1d6c1651d45c41eb6acdce2";
 export const GENERATE_PRICE_IN_SUI = 1;
+export const FINE_TUNE_PRICE_IN_SUI = 1;
 export const FEES_PERCENTAGE = 0.05;
 export const SUI_NETWORK = "testnet";

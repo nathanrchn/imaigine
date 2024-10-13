@@ -68,7 +68,7 @@ export default function GeneratePage({ params: { id } }: { params: { id: string 
       input: {
         prompt,
         model_name: null,
-        image_size: "square",
+        image_size: "square_hd",
         loras: [{
           path: diffusers_lora_file,
           scale: 1
@@ -187,14 +187,14 @@ export default function GeneratePage({ params: { id } }: { params: { id: string 
         </div>
         <div className="flex justify-center items-center lg:w-1/2">
           {isLoading ?
-            <Skeleton className="w-[512px] h-[512px] rounded-xl" /> :
+            <Skeleton className="w-[1024px] h-[1024px] rounded-xl" /> :
             image ? (
               <div className="relative">
                 <Image src={image.images[0].url} alt="Generated Image" width={image.images[0].width} height={image.images[0].height} className="rounded-xl" />
                 {!hasMinted && <Button type="button" className="absolute bottom-2 right-2" onClick={mintNFT}>Mint NFT</Button>}
               </div>
             ) :
-            <div className="w-[512px] h-[512px]" />
+            <div className="w-[1024px] h-[1024px]" />
           }
         </div>
       </div>
