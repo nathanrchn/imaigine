@@ -18,7 +18,7 @@ export const imagine = async (triggerWord: string, modelType: ModelType) => {
   let promptInstruction = "";
 
   if (modelType === "people") {
-    promptInstruction = `Generate a creative and funny prompt for a text-to-image AI model featuring a person named ${triggerWord} in an amusing situation. The prompt MUST specify that their face is clearly visible. Be imaginative and humorous while ensuring the person's facial features are a key part of the scene.`;
+    promptInstruction = `Generate a creative prompt for a text-to-image AI model featuring a person named ${triggerWord}. The prompt MUST ensure that the person's face is clearly visible. Do not mention the gender of the person.`;
   } else if (modelType === "style") {
     promptInstruction = `image of X in style of ${triggerWord}, Generate an artistic prompt for a text-to-image AI model showcasing a unique visual style. Focus on describing the aesthetic elements`;
   } else {
