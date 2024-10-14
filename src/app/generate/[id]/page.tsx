@@ -21,11 +21,11 @@ import { useSignAndExecuteTransaction, useSuiClient } from "@mysten/dapp-kit";
 import { colorFromAddress, FalResult, getExplorerUrl, Model, ModelType } from "@/lib/utils";
 import { Select, SelectValue, SelectTrigger, SelectItem, SelectContent } from "@/components/ui/select";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { FEES_PERCENTAGE, GENERATE_PRICE_PER_MEGA_PIXEL_IN_USDT, IMAIGINE_PACKAGE_ADDRESS, VAULT_ADDRESS, ADDITIONAL_FEES_IN_MIST } from "@/lib/consts";
+import { FEES_PERCENTAGE, GENERATE_PRICE_PER_MEGA_PIXEL_IN_USDT, IMAIGINE_PACKAGE_ADDRESS, VAULT_ADDRESS, ADDITIONAL_FEES_IN_MIST, SIZES_AND_RESOLUTIONS } from "@/lib/consts";
 
 const formSchema = z.object({
   prompt: z.string().min(1),
-  image_size: z.enum(["square", "square_hd", "portrait_4_3", "portrait_16_9", "landscape_4_3", "landscape_16_9"]),
+  image_size: z.enum(Object.keys(SIZES_AND_RESOLUTIONS) as [string, ...string[]]),
 });
 
 export default function GeneratePage({ params: { id } }: { params: { id: string } }) {
@@ -100,17 +100,11 @@ export default function GeneratePage({ params: { id } }: { params: { id: string 
     setLastPrompt(data.prompt);
     const tx = new Transaction();
 
-    const megaPixelsPerSize = {
-      "square": 512 * 512,
-      "square_hd": 1024 * 1024,
-      "portrait_4_3": 768 * 1024,
-      "portrait_16_9": 576 * 1024,
-      "landscape_4_3": 1024 * 768,
-      "landscape_16_9": 1024 * 576,
-    }
+    const [width, height] = SIZES_AND_RESOLUTIONS[data.image_size];
+    const megaPixels = (width * height) / 1_000_000;
 
-    const [generation_coin] = tx.splitCoins(tx.gas, [BigInt(suiusdtPrice * GENERATE_PRICE_PER_MEGA_PIXEL_IN_USDT * megaPixelsPerSize[data.image_size]) * MIST_PER_SUI + BigInt(ADDITIONAL_FEES_IN_MIST)])
-    const feesAmount = BigInt(FEES_PERCENTAGE) * BigInt(suiusdtPrice * GENERATE_PRICE_PER_MEGA_PIXEL_IN_USDT * megaPixelsPerSize[data.image_size]) * MIST_PER_SUI / BigInt(100);
+    const [generation_coin] = tx.splitCoins(tx.gas, [BigInt(suiusdtPrice * GENERATE_PRICE_PER_MEGA_PIXEL_IN_USDT * megaPixels) * MIST_PER_SUI + BigInt(ADDITIONAL_FEES_IN_MIST)])
+    const feesAmount = BigInt(FEES_PERCENTAGE) * BigInt(suiusdtPrice * GENERATE_PRICE_PER_MEGA_PIXEL_IN_USDT * megaPixels) * MIST_PER_SUI / BigInt(100);
     const [use_model_coin] = tx.splitCoins(generation_coin, [feesAmount]);
     tx.transferObjects([generation_coin], VAULT_ADDRESS)
     tx.transferObjects([use_model_coin], model!.owner)
