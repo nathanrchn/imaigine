@@ -7,7 +7,7 @@ import { decode } from "base64-arraybuffer";
 import { SuiClient } from "@mysten/sui/client";
 import { getFullnodeUrl } from "@mysten/sui/client";
 import { createClient } from "@supabase/supabase-js";
-import { IMAIGINE_ADDRESS, SUI_NETWORK } from "./consts";
+import { IMAIGINE_ADDRESS, IMAIGINE_PACKAGE_ADDRESS, SUI_NETWORK } from "./consts";
 import { queue, subscribe } from "@fal-ai/serverless-client";
 import { KioskClient, KioskOwnerCap, Network } from "@mysten/kiosk";
 import { FalModelResult, FalResult, Model, ModelType, nanoid } from "./utils";
@@ -121,7 +121,7 @@ export const getKioskModels = async (kioskId: string): Promise<Model[]> => {
     }
   });
 
-  return response.items.map((item) => {
+  return response.items.filter((item) => item.type === `${IMAIGINE_PACKAGE_ADDRESS}::model::Model`).map((item) => {
     const content = item.data!.content! as any;
 
     return {
