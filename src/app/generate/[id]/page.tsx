@@ -15,15 +15,17 @@ import { ToastAction } from "@/components/ui/toast";
 import { Textarea } from "@/components/ui/textarea";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Transaction } from "@mysten/sui/transactions";
-import { getModel, imagine, uploadImage } from "@/lib/actions";
 import { QueueStatus, subscribe } from "@fal-ai/serverless-client";
-import { colorFromAddress, FalResult, Model, ModelType } from "@/lib/utils";
+import { getModel, getPrice, imagine, uploadImage } from "@/lib/actions";
 import { useSignAndExecuteTransaction, useSuiClient } from "@mysten/dapp-kit";
-import { FEES_PERCENTAGE, GENERATE_PRICE_IN_SUI, IMAIGINE_PACKAGE_ADDRESS, SUI_NETWORK, VAULT_ADDRESS } from "@/lib/consts";
+import { colorFromAddress, FalResult, getExplorerUrl, Model, ModelType } from "@/lib/utils";
+import { Select, SelectValue, SelectTrigger, SelectItem, SelectContent } from "@/components/ui/select";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { FEES_PERCENTAGE, GENERATE_PRICE_PER_MEGA_PIXEL_IN_USDT, IMAIGINE_PACKAGE_ADDRESS, VAULT_ADDRESS, ADDITIONAL_FEES_IN_MIST } from "@/lib/consts";
 
 const formSchema = z.object({
   prompt: z.string().min(1),
+  image_size: z.enum(["square", "square_hd", "portrait_4_3", "portrait_16_9", "landscape_4_3", "landscape_16_9"]),
 });
 
 export default function GeneratePage({ params: { id } }: { params: { id: string } }) {
@@ -59,16 +61,17 @@ export default function GeneratePage({ params: { id } }: { params: { id: string 
     resolver: zodResolver(formSchema),
     defaultValues: {
       prompt: "",
+      image_size: "square",
     },
   });
 
-  const generateImage = async (diffusers_lora_file: string, prompt: string): Promise<FalResult> => {
+  const generateImage = async (diffusers_lora_file: string, prompt: string, image_size: string): Promise<FalResult> => {
     let currentStatus = "";
     const result: FalResult = await subscribe("fal-ai/flux-lora", {
       input: {
         prompt,
         model_name: null,
-        image_size: "square_hd",
+        image_size,
         loras: [{
           path: diffusers_lora_file,
           scale: 1
@@ -90,14 +93,24 @@ export default function GeneratePage({ params: { id } }: { params: { id: string 
   }
 
   const onSubmit = async (data: z.infer<typeof formSchema>) => {
+    const suiusdtPrice = await getPrice();
     setImage(null);
     setIsLoading(true);
     setHasMinted(false);
     setLastPrompt(data.prompt);
     const tx = new Transaction();
 
-    const [generation_coin] = tx.splitCoins(tx.gas, [BigInt(GENERATE_PRICE_IN_SUI) * MIST_PER_SUI])
-    const feesAmount = BigInt(FEES_PERCENTAGE * 100) * BigInt(GENERATE_PRICE_IN_SUI) * MIST_PER_SUI / BigInt(100);
+    const megaPixelsPerSize = {
+      "square": 512 * 512,
+      "square_hd": 1024 * 1024,
+      "portrait_4_3": 768 * 1024,
+      "portrait_16_9": 576 * 1024,
+      "landscape_4_3": 1024 * 768,
+      "landscape_16_9": 1024 * 576,
+    }
+
+    const [generation_coin] = tx.splitCoins(tx.gas, [BigInt(suiusdtPrice * GENERATE_PRICE_PER_MEGA_PIXEL_IN_USDT * megaPixelsPerSize[data.image_size]) * MIST_PER_SUI + BigInt(ADDITIONAL_FEES_IN_MIST)])
+    const feesAmount = BigInt(FEES_PERCENTAGE) * BigInt(suiusdtPrice * GENERATE_PRICE_PER_MEGA_PIXEL_IN_USDT * megaPixelsPerSize[data.image_size]) * MIST_PER_SUI / BigInt(100);
     const [use_model_coin] = tx.splitCoins(generation_coin, [feesAmount]);
     tx.transferObjects([generation_coin], VAULT_ADDRESS)
     tx.transferObjects([use_model_coin], model!.owner)
@@ -108,7 +121,8 @@ export default function GeneratePage({ params: { id } }: { params: { id: string 
       }).then(() => {
         generateImage(
           model!.weights_link,
-          data.prompt
+          data.prompt,
+          data.image_size
         ).then((result) => {
           setImage(result);
           setIsLoading(false);
@@ -143,7 +157,7 @@ export default function GeneratePage({ params: { id } }: { params: { id: string 
         title: "NFT Minted",
         description: "Your NFT has been minted.",
         variant: "default",
-        action: objectId ? <ToastAction altText="View in explorer" asChild><Link href={`https://${SUI_NETWORK}.suivision.xyz/object/${objectId}`}>View in explorer</Link></ToastAction> : undefined
+        action: objectId ? <ToastAction altText="View in explorer" asChild><Link href={getExplorerUrl(objectId)} target="_blank">View in explorer</Link></ToastAction> : undefined
       });
     }});
   }
@@ -178,6 +192,36 @@ export default function GeneratePage({ params: { id } }: { params: { id: string 
                     )}
                   />
                 </div>
+                <div className="flex flex-col gap-2">
+                  <FormField
+                    control={form.control}
+                    name="image_size"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Image Size</FormLabel>
+                        <FormControl>
+                          <Select {...field}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select an image size" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="square">Square</SelectItem>
+                              <SelectItem value="square_hd">Square HD</SelectItem>
+                              <SelectItem value="portrait_4_3">Portrait 4:3</SelectItem>
+                              <SelectItem value="portrait_16_9">Portrait 16:9</SelectItem>
+                              <SelectItem value="landscape_4_3">Landscape 4:3</SelectItem>
+                              <SelectItem value="landscape_16_9">Landscape 16:9</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </FormControl>
+                        <FormDescription>
+                          Choose the size of the image you want to generate.
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
                 <div className="flex justify-end">
                   <Button type="submit" disabled={isLoading}>Generate</Button>
                 </div>
@@ -187,14 +231,14 @@ export default function GeneratePage({ params: { id } }: { params: { id: string 
         </div>
         <div className="flex justify-center items-center lg:w-1/2">
           {isLoading ?
-            <Skeleton className="w-[1024px] h-[1024px] rounded-xl" /> :
+            <Skeleton className="w-[512px] h-[512px] rounded-xl" /> :
             image ? (
               <div className="relative">
                 <Image src={image.images[0].url} alt="Generated Image" width={image.images[0].width} height={image.images[0].height} className="rounded-xl" />
                 {!hasMinted && <Button type="button" className="absolute bottom-2 right-2" onClick={mintNFT}>Mint NFT</Button>}
               </div>
             ) :
-            <div className="w-[1024px] h-[1024px]" />
+            <div className="w-[512px] h-[512px]" />
           }
         </div>
       </div>

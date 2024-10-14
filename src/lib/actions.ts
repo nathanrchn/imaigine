@@ -11,6 +11,7 @@ import { IMAIGINE_ADDRESS, SUI_NETWORK } from "./consts";
 import { queue, subscribe } from "@fal-ai/serverless-client";
 import { KioskClient, KioskOwnerCap, Network } from "@mysten/kiosk";
 import { FalModelResult, FalResult, Model, ModelType, nanoid } from "./utils";
+import { MIST_PER_SUI } from "@mysten/sui/utils";
 
 const client = new SuiClient({ url: getFullnodeUrl(SUI_NETWORK) });
 
@@ -126,7 +127,7 @@ export const getKioskModels = async (kioskId: string): Promise<Model[]> => {
     return {
       id: item.objectId,
       owner: content.fields.owner,
-      price: Number(item.listing!.price!),
+      price_in_sui: Number(item.listing!.price!) / Number(MIST_PER_SUI),
       weights_link: content.fields.weights_link,
       image_url: content.fields.image_url,
       trigger_word: content.fields.trigger_word,
@@ -161,4 +162,10 @@ export const uploadImage = async (imageData: string): Promise<string> => {
     .getPublicUrl(fileName);
 
   return publicUrlData.publicUrl!;
+}
+
+export const getPrice = async (): Promise<number> => {
+  const response = await fetch("https://api.binance.com/api/v3/avgPrice?symbol=SUIUSDT");
+  const data = await response.json();
+  return Number(data.price);
 }

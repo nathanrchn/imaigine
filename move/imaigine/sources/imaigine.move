@@ -1,29 +1,35 @@
 module imaigine::imaigine {
     use sui::sui::SUI;
     use sui::coin::Coin;
+    use sui::balance::{Self, Balance};
     use sui::transfer_policy::TransferPolicy;
     use sui::kiosk::{Self, Kiosk, KioskOwnerCap};
     use imaigine::model::{Model, confirm_request};
 
     public struct Imaigine has key {
         id: UID,
-        kiosks: vector<address>
+        kiosks: vector<address>,
+        balance: Balance<SUI>
     }
 
     fun init(ctx: &mut TxContext) {
         let imaigine = Imaigine {
             id: object::new(ctx),
-            kiosks: vector::empty()
+            kiosks: vector::empty(),
+            balance: balance::zero()
         };
 
         transfer::share_object(imaigine);
     }
 
-    public fun new_kiosk(imaigine: &mut Imaigine, ctx: &mut TxContext): (Kiosk, KioskOwnerCap) {
-        let (kiosk, cap) = kiosk::new(ctx);
+    public fun add_kiosk(imaigine: &mut Imaigine, kiosk: &Kiosk) {
+        vector::push_back(&mut imaigine.kiosks, object::id_address(kiosk));
+    }
 
-        vector::push_back(&mut imaigine.kiosks, object::id_address(&kiosk));
-        (kiosk, cap)
+    public fun remove_kiosk(imaigine: &mut Imaigine, kiosk: &Kiosk) {
+        let (found, index) = vector::index_of(&imaigine.kiosks, &object::id_address(kiosk));
+        assert!(found, 1);
+        vector::remove(&mut imaigine.kiosks, index);
     }
 
     public fun new(imaigine: &mut Imaigine, ctx: &mut TxContext): KioskOwnerCap {

@@ -1,6 +1,7 @@
 import { customAlphabet } from "nanoid";
 import { twMerge } from "tailwind-merge";
 import { clsx, type ClassValue } from "clsx";
+import { SUI_NETWORK } from "./consts";
 
 export const nanoid = customAlphabet("ABCDEFGHIJKLMNOPQRSTUVWXYZ", 5);
 
@@ -29,7 +30,7 @@ export type Model = {
   trigger_word: string;
   image_url: string;
   model_type: ModelType;
-  price?: number;
+  price_in_sui?: number;
 }
 
 export type FalFile = {
@@ -57,4 +58,8 @@ export type FalResult = {
   seed: number;
   has_nsfw_content: boolean[];
   prompt: string;
+}
+
+export const getExplorerUrl = (objectId: string, type: "object" | "address" = "object") => {
+  return `https://${SUI_NETWORK}.suivision.xyz/${type}/${objectId}`;
 }

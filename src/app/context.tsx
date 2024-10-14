@@ -3,7 +3,6 @@
 import "@mysten/dapp-kit/dist/index.css";
 import { config } from "@fal-ai/serverless-client";
 import { getFullnodeUrl } from "@mysten/sui/client";
-import { EnokiFlowProvider } from "@mysten/enoki/react";
 import { ThemeProvider } from "@/components/theme-provider"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createNetworkConfig, SuiClientProvider, WalletProvider } from "@mysten/dapp-kit";
@@ -34,9 +33,7 @@ export default function Context({
           <WalletProvider stashedWallet={{
             name: "Imaigine",
           }} autoConnect>
-            <EnokiFlowProvider apiKey={process.env.ENOKI_API_KEY!}>
-              {children}
-            </EnokiFlowProvider>
+            {children}
           </WalletProvider>
         </SuiClientProvider>
       </QueryClientProvider>

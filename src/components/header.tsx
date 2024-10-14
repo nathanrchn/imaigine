@@ -15,10 +15,11 @@ import { Loader2, Moon, Sun } from "lucide-react";
 import { Transaction } from "@mysten/sui/transactions";
 import { storage, queue } from "@fal-ai/serverless-client";
 import { EnqueueResult } from "@fal-ai/serverless-client/src/types";
-import { FINE_TUNE_PRICE_IN_SUI, VAULT_ADDRESS } from "@/lib/consts";
+import { FINE_TUNE_PRICE_IN_USDT, VAULT_ADDRESS } from "@/lib/consts";
 import { ConnectButton, useSignAndExecuteTransaction } from "@mysten/dapp-kit";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Dialog, DialogContent, DialogTrigger, DialogTitle, DialogDescription } from "./ui/dialog";
+import { getPrice } from "@/lib/actions";
 
 const uploadImages = async (images: File[]): Promise<string> => {
   const zip = new JSZip();
@@ -66,10 +67,11 @@ export default function Header() {
       return;
     }
 
+    const suiusdtPrice = await getPrice();
     const triggerWord = nanoid();
 
     const tx = new Transaction();
-    const [coin] = tx.splitCoins(tx.gas, [BigInt(FINE_TUNE_PRICE_IN_SUI) * MIST_PER_SUI])
+    const [coin] = tx.splitCoins(tx.gas, [BigInt(suiusdtPrice * FINE_TUNE_PRICE_IN_USDT) * MIST_PER_SUI])
     tx.transferObjects([coin], VAULT_ADDRESS)
 
     signAndExecuteTransaction({ transaction: tx }, { onSuccess: async () => {
@@ -92,7 +94,7 @@ export default function Header() {
     <div className="flex items-center justify-between w-full p-4">
       <div className="flex items-center w-1/2 ml-4">
         <Link href="/">
-          <h1 className="text-2xl font-bold">Imaiagine</h1>
+          <h1 className="text-2xl font-bold">Imaigine</h1>
         </Link>
       </div>
       <div className="flex items-center justify-end w-1/2 mr-4">

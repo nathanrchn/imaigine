@@ -11,11 +11,11 @@ import { useSearchParams } from "next/navigation";
 import { ToastAction } from "@/components/ui/toast";
 import { Progress } from "@/components/ui/progress";
 import { Transaction } from "@mysten/sui/transactions";
-import { FalModelResult, ModelType } from "@/lib/utils";
+import { IMAIGINE_PACKAGE_ADDRESS } from "@/lib/consts";
 import { FalStream } from "@fal-ai/serverless-client/src/streaming";
-import { generateExampleImage, getTriggerWord, uploadImage } from "@/lib/actions";
-import { IMAIGINE_PACKAGE_ADDRESS, SUI_NETWORK } from "@/lib/consts";
+import { FalModelResult, getExplorerUrl, ModelType } from "@/lib/utils";
 import { useSignAndExecuteTransaction, useSuiClient } from "@mysten/dapp-kit";
+import { generateExampleImage, getTriggerWord, uploadImage } from "@/lib/actions";
 import { InProgressQueueStatus, QueueStatus } from "@fal-ai/serverless-client/src/types";
 
 export default function ModelPage({ params: { request_id } }: { params: { request_id: string } }) {
@@ -48,8 +48,8 @@ export default function ModelPage({ params: { request_id } }: { params: { reques
   streamStatusPromise.then((streamStatus) => {
     streamStatus.on("data", (data: InProgressQueueStatus) => {
       if (data.logs.length > 0) {
-        const lastLog = data.logs[data.logs.length - 1];
-        const percentageMatch = lastLog.message.match(/\d+%/);
+        const lastLog = data.logs.pop();
+        const percentageMatch = lastLog?.message.match(/\d+%/);
         if (percentageMatch) {
           const percentage = parseInt(percentageMatch[0].replace("%", ""));
           setProcess(percentage);
@@ -71,7 +71,6 @@ export default function ModelPage({ params: { request_id } }: { params: { reques
     const triggerWord = await getTriggerWord(result.config_file.url);
 
     const image_url: string = await uploadImage(imageData?.url || "");
-    // const image_url = "https://whzgbhdnyfdzygagqblf.supabase.co/storage/v1/object/public/images/public/PDMUSEXYTJ.jpeg";
 
     const tx = new Transaction();
 
@@ -91,7 +90,7 @@ export default function ModelPage({ params: { request_id } }: { params: { reques
         title: "NFT Minted",
         description: "Your NFT has been minted.",
         variant: "default",
-        action: objectId ? <ToastAction altText="View in explorer" asChild><Link href={`https://${SUI_NETWORK}.suivision.xyz/object/${objectId}`}>View in explorer</Link></ToastAction> : undefined
+        action: objectId ? <ToastAction altText="View in explorer" asChild><Link href={getExplorerUrl(objectId)} target="_blank">View in explorer</Link></ToastAction> : undefined
       });
     }});
   }

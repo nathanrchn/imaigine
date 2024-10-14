@@ -7,7 +7,7 @@ import ModelCard from "@/components/model-card";
 import { MIST_PER_SUI } from "@mysten/sui/utils";
 import { Separator } from "@/components/ui/separator";
 import { Transaction } from "@mysten/sui/transactions";
-import { getKioskModels, getKiosks, getOwnedKiosksCaps } from "@/lib/actions";
+import { getKioskModels, getKiosks, getOwnedKiosksCaps, getPrice } from "@/lib/actions";
 import { useCurrentAccount, useSignAndExecuteTransaction, useSuiClient } from "@mysten/dapp-kit";
 import { IMAIGINE_ADDRESS, IMAIGINE_PACKAGE_ADDRESS, MODEL_TRANSFER_POLICY_ADDRESS } from "@/lib/consts";
 
@@ -99,22 +99,36 @@ export default function Home() {
     });
   }, [currentAccount]);
 
-  const publishModel = (id: string, price: number) => {
+  const publishModel = async (id: string, price_in_sui: number) => {
     const tx = new Transaction();
+    const kiosks = await getKiosks();
 
     let kiosk: any;
     let cap: any;
 
     if (ownedKiosksCaps.length === 0) {
       const [newKiosk, newCap] = tx.moveCall({
-        target: `${IMAIGINE_PACKAGE_ADDRESS}::imaigine::new_kiosk`,
+        target: '0x2::kiosk::new',
+      });
+
+      tx.moveCall({
+        target: `${IMAIGINE_PACKAGE_ADDRESS}::imaigine::add_kiosk`,
         arguments: [
           tx.object(IMAIGINE_ADDRESS),
-        ]
+          tx.object(newKiosk),
+        ],
       });
 
       kiosk = newKiosk;
       cap = newCap;
+    } else if (!kiosks.some((k) => k === ownedKiosksCaps[0].kioskId)) {
+      tx.moveCall({
+        target: `${IMAIGINE_PACKAGE_ADDRESS}::imaigine::add_kiosk`,
+        arguments: [
+          tx.object(IMAIGINE_ADDRESS),
+          tx.object(ownedKiosksCaps[0].kioskId),
+        ],
+      });
     }
 
     tx.moveCall({
@@ -128,24 +142,30 @@ export default function Home() {
       target: `${IMAIGINE_PACKAGE_ADDRESS}::imaigine::publish_model`,
       arguments: [
         tx.object(id),
-        tx.pure.u64(price),
+        tx.pure.u64(BigInt(price_in_sui) * MIST_PER_SUI),
         ownedKiosksCaps.length > 0 ? tx.object(ownedKiosksCaps[0].kioskId) : kiosk,
         ownedKiosksCaps.length > 0 ? tx.object(ownedKiosksCaps[0].objectId) : cap,
       ]
     })
 
     if (ownedKiosksCaps.length === 0) {
-      tx.transferObjects([kiosk], currentAccount!.address);
       tx.transferObjects([cap], currentAccount!.address);
+      tx.moveCall({
+        target: "0x2::transfer::public_share_object",
+        arguments: [kiosk],
+        typeArguments: ["0x2::kiosk::Kiosk"],
+      })
     }
 
     signAndExecuteTransaction({ transaction: tx });
   }
 
-  const buyModel = (id: string, price: number) => {
+  const buyModel = (id: string, price_in_sui: number) => {
     const tx = new Transaction();
 
-    const [coin] = tx.splitCoins(tx.gas, [BigInt(price) * MIST_PER_SUI])
+    tx.setGasBudget(10000000);
+
+    const [coin] = tx.splitCoins(tx.gas, [BigInt(price_in_sui) * MIST_PER_SUI])
 
     const model = tx.moveCall({
       target: `${IMAIGINE_PACKAGE_ADDRESS}::imaigine::buy_model`,
