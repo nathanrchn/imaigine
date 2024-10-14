@@ -103,8 +103,11 @@ export default function GeneratePage({ params: { id } }: { params: { id: string 
     const [width, height] = SIZES_AND_RESOLUTIONS[data.image_size];
     const megaPixels = (width * height) / 1_000_000;
 
-    const [generation_coin] = tx.splitCoins(tx.gas, [BigInt(suiusdtPrice * GENERATE_PRICE_PER_MEGA_PIXEL_IN_USDT * megaPixels) * MIST_PER_SUI + BigInt(ADDITIONAL_FEES_IN_MIST)])
-    const feesAmount = BigInt(FEES_PERCENTAGE) * BigInt(suiusdtPrice * GENERATE_PRICE_PER_MEGA_PIXEL_IN_USDT * megaPixels) * MIST_PER_SUI / BigInt(100);
+    const generation_coin_amount = suiusdtPrice * GENERATE_PRICE_PER_MEGA_PIXEL_IN_USDT * megaPixels * Number(MIST_PER_SUI) + Number(ADDITIONAL_FEES_IN_MIST);
+    const rounded_generation_coin_amount = Math.ceil(generation_coin_amount);
+
+    const [generation_coin] = tx.splitCoins(tx.gas, [rounded_generation_coin_amount])
+    const feesAmount = Math.ceil(Number(FEES_PERCENTAGE) * rounded_generation_coin_amount / Number(100));
     const [use_model_coin] = tx.splitCoins(generation_coin, [feesAmount]);
     tx.transferObjects([generation_coin], VAULT_ADDRESS)
     tx.transferObjects([use_model_coin], model!.owner)
