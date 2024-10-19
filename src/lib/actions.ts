@@ -165,7 +165,11 @@ export const uploadImage = async (imageData: string): Promise<string> => {
 }
 
 export const getPrice = async (): Promise<number> => {
-  const response = await fetch("https://api.binance.com/api/v3/avgPrice?symbol=SUIUSDT");
+  const response = await fetch("https://pro-api.coinmarketcap.com/v2/cryptocurrency/quotes/latest?id=20947&convert=USD", {
+    headers: {
+      "X-CMC_PRO_API_KEY": process.env.COINMARKETCAP_API_KEY!,
+    }
+  });
   const data = await response.json();
-  return Number(data.price);
+  return Number(data.data["20947"].quote.USD.price);
 }
