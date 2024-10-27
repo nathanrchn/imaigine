@@ -71,7 +71,7 @@ export default function Header() {
     const triggerWord = nanoid();
 
     const tx = new Transaction();
-    const [coin] = tx.splitCoins(tx.gas, [BigInt(suiusdtPrice * FINE_TUNE_PRICE_IN_USDT) * MIST_PER_SUI])
+    const [coin] = tx.splitCoins(tx.gas, [BigInt(Math.floor(suiusdtPrice * FINE_TUNE_PRICE_IN_USDT)) * MIST_PER_SUI]);
     tx.transferObjects([coin], VAULT_ADDRESS)
 
     signAndExecuteTransaction({ transaction: tx }, { onSuccess: async () => {
